@@ -116,7 +116,7 @@ class SubscriptionsTest extends IntegrationTestCase
         $user->newSubscription('main', static::$planId)->create('pm_card_visa');
 
         $this->assertEquals(1, count($user->subscriptions));
-        $this->assertNotNull($user->subscription('main')->stripe_id);
+        $this->assertNotNull($user->stripeSubscription('main')->stripe_id);
 
         $this->assertTrue($user->subscribed('main'));
         $this->assertTrue($user->subscribedToPlan(static::$planId, 'main'));
@@ -124,14 +124,14 @@ class SubscriptionsTest extends IntegrationTestCase
         $this->assertFalse($user->subscribedToPlan(static::$otherPlanId, 'main'));
         $this->assertTrue($user->subscribed('main', static::$planId));
         $this->assertFalse($user->subscribed('main', static::$otherPlanId));
-        $this->assertTrue($user->subscription('main')->active());
-        $this->assertFalse($user->subscription('main')->cancelled());
-        $this->assertFalse($user->subscription('main')->onGracePeriod());
-        $this->assertTrue($user->subscription('main')->recurring());
-        $this->assertFalse($user->subscription('main')->ended());
+        $this->assertTrue($user->stripeSubscription('main')->active());
+        $this->assertFalse($user->stripeSubscription('main')->cancelled());
+        $this->assertFalse($user->stripeSubscription('main')->onGracePeriod());
+        $this->assertTrue($user->stripeSubscription('main')->recurring());
+        $this->assertFalse($user->stripeSubscription('main')->ended());
 
         // Cancel Subscription
-        $subscription = $user->subscription('main');
+        $subscription = $user->stripeSubscription('main');
         $subscription->cancel();
 
         $this->assertTrue($subscription->active());
@@ -189,7 +189,7 @@ class SubscriptionsTest extends IntegrationTestCase
     {
         $user = $this->createCustomer('swapping_subscription_with_coupon');
         $user->newSubscription('main', static::$planId)->create('pm_card_visa');
-        $subscription = $user->subscription('main');
+        $subscription = $user->stripeSubscription('main');
 
         $subscription->swap(static::$otherPlanId, [
             'coupon' => static::$couponId,
@@ -211,7 +211,7 @@ class SubscriptionsTest extends IntegrationTestCase
             $this->assertTrue($e->payment->requiresPaymentMethod());
 
             // Assert subscription was added to the billable entity.
-            $this->assertInstanceOf(Subscription::class, $subscription = $user->subscription('main'));
+            $this->assertInstanceOf(Subscription::class, $subscription = $user->stripeSubscription('main'));
 
             // Assert subscription is incomplete.
             $this->assertTrue($subscription->incomplete());
@@ -231,7 +231,7 @@ class SubscriptionsTest extends IntegrationTestCase
             $this->assertTrue($e->payment->requiresAction());
 
             // Assert subscription was added to the billable entity.
-            $this->assertInstanceOf(Subscription::class, $subscription = $user->subscription('main'));
+            $this->assertInstanceOf(Subscription::class, $subscription = $user->stripeSubscription('main'));
 
             // Assert subscription is incomplete.
             $this->assertTrue($subscription->incomplete());
@@ -337,7 +337,7 @@ class SubscriptionsTest extends IntegrationTestCase
             ->withCoupon(static::$couponId)
             ->create('pm_card_visa');
 
-        $subscription = $user->subscription('main');
+        $subscription = $user->stripeSubscription('main');
 
         $this->assertTrue($user->subscribed('main'));
         $this->assertTrue($user->subscribed('main', static::$planId));
@@ -366,7 +366,7 @@ class SubscriptionsTest extends IntegrationTestCase
             ->anchorBillingCycleOn(new DateTime('first day of next month'))
             ->create('pm_card_visa');
 
-        $subscription = $user->subscription('main');
+        $subscription = $user->stripeSubscription('main');
 
         $this->assertTrue($user->subscribed('main'));
         $this->assertTrue($user->subscribed('main', static::$planId));
@@ -400,7 +400,7 @@ class SubscriptionsTest extends IntegrationTestCase
             ->trialDays(7)
             ->create('pm_card_visa');
 
-        $subscription = $user->subscription('main');
+        $subscription = $user->stripeSubscription('main');
 
         $this->assertTrue($subscription->active());
         $this->assertTrue($subscription->onTrial());
@@ -436,7 +436,7 @@ class SubscriptionsTest extends IntegrationTestCase
             ->trialUntil(Carbon::tomorrow()->hour(3)->minute(15))
             ->create('pm_card_visa');
 
-        $subscription = $user->subscription('main');
+        $subscription = $user->stripeSubscription('main');
 
         $this->assertTrue($subscription->active());
         $this->assertTrue($subscription->onTrial());
@@ -519,7 +519,7 @@ class SubscriptionsTest extends IntegrationTestCase
         $user = $this->createCustomer('subscription_state_scopes');
 
         // Start with an incomplete subscription.
-        $subscription = $user->subscriptions()->create([
+        $subscription = $user->stripeSubscriptions()->create([
             'name' => 'yearly',
             'stripe_id' => 'xxxx',
             'stripe_status' => 'incomplete',
@@ -530,83 +530,83 @@ class SubscriptionsTest extends IntegrationTestCase
         ]);
 
         // Subscription is incomplete
-        $this->assertTrue($user->subscriptions()->incomplete()->exists());
-        $this->assertFalse($user->subscriptions()->active()->exists());
-        $this->assertFalse($user->subscriptions()->onTrial()->exists());
-        $this->assertTrue($user->subscriptions()->notOnTrial()->exists());
-        $this->assertTrue($user->subscriptions()->recurring()->exists());
-        $this->assertFalse($user->subscriptions()->cancelled()->exists());
-        $this->assertTrue($user->subscriptions()->notCancelled()->exists());
-        $this->assertFalse($user->subscriptions()->onGracePeriod()->exists());
-        $this->assertTrue($user->subscriptions()->notOnGracePeriod()->exists());
-        $this->assertFalse($user->subscriptions()->ended()->exists());
+        $this->assertTrue($user->stripeSubscriptions()->incomplete()->exists());
+        $this->assertFalse($user->stripeSubscriptions()->active()->exists());
+        $this->assertFalse($user->stripeSubscriptions()->onTrial()->exists());
+        $this->assertTrue($user->stripeSubscriptions()->notOnTrial()->exists());
+        $this->assertTrue($user->stripeSubscriptions()->recurring()->exists());
+        $this->assertFalse($user->stripeSubscriptions()->cancelled()->exists());
+        $this->assertTrue($user->stripeSubscriptions()->notCancelled()->exists());
+        $this->assertFalse($user->stripeSubscriptions()->onGracePeriod()->exists());
+        $this->assertTrue($user->stripeSubscriptions()->notOnGracePeriod()->exists());
+        $this->assertFalse($user->stripeSubscriptions()->ended()->exists());
 
         // Activate.
         $subscription->update(['stripe_status' => 'active']);
 
-        $this->assertFalse($user->subscriptions()->incomplete()->exists());
-        $this->assertTrue($user->subscriptions()->active()->exists());
-        $this->assertFalse($user->subscriptions()->onTrial()->exists());
-        $this->assertTrue($user->subscriptions()->notOnTrial()->exists());
-        $this->assertTrue($user->subscriptions()->recurring()->exists());
-        $this->assertFalse($user->subscriptions()->cancelled()->exists());
-        $this->assertTrue($user->subscriptions()->notCancelled()->exists());
-        $this->assertFalse($user->subscriptions()->onGracePeriod()->exists());
-        $this->assertTrue($user->subscriptions()->notOnGracePeriod()->exists());
-        $this->assertFalse($user->subscriptions()->ended()->exists());
+        $this->assertFalse($user->stripeSubscriptions()->incomplete()->exists());
+        $this->assertTrue($user->stripeSubscriptions()->active()->exists());
+        $this->assertFalse($user->stripeSubscriptions()->onTrial()->exists());
+        $this->assertTrue($user->stripeSubscriptions()->notOnTrial()->exists());
+        $this->assertTrue($user->stripeSubscriptions()->recurring()->exists());
+        $this->assertFalse($user->stripeSubscriptions()->cancelled()->exists());
+        $this->assertTrue($user->stripeSubscriptions()->notCancelled()->exists());
+        $this->assertFalse($user->stripeSubscriptions()->onGracePeriod()->exists());
+        $this->assertTrue($user->stripeSubscriptions()->notOnGracePeriod()->exists());
+        $this->assertFalse($user->stripeSubscriptions()->ended()->exists());
 
         // Put on trial.
         $subscription->update(['trial_ends_at' => Carbon::now()->addDay()]);
 
-        $this->assertFalse($user->subscriptions()->incomplete()->exists());
-        $this->assertTrue($user->subscriptions()->active()->exists());
-        $this->assertTrue($user->subscriptions()->onTrial()->exists());
-        $this->assertFalse($user->subscriptions()->notOnTrial()->exists());
-        $this->assertFalse($user->subscriptions()->recurring()->exists());
-        $this->assertFalse($user->subscriptions()->cancelled()->exists());
-        $this->assertTrue($user->subscriptions()->notCancelled()->exists());
-        $this->assertFalse($user->subscriptions()->onGracePeriod()->exists());
-        $this->assertTrue($user->subscriptions()->notOnGracePeriod()->exists());
-        $this->assertFalse($user->subscriptions()->ended()->exists());
+        $this->assertFalse($user->stripeSubscriptions()->incomplete()->exists());
+        $this->assertTrue($user->stripeSubscriptions()->active()->exists());
+        $this->assertTrue($user->stripeSubscriptions()->onTrial()->exists());
+        $this->assertFalse($user->stripeSubscriptions()->notOnTrial()->exists());
+        $this->assertFalse($user->stripeSubscriptions()->recurring()->exists());
+        $this->assertFalse($user->stripeSubscriptions()->cancelled()->exists());
+        $this->assertTrue($user->stripeSubscriptions()->notCancelled()->exists());
+        $this->assertFalse($user->stripeSubscriptions()->onGracePeriod()->exists());
+        $this->assertTrue($user->stripeSubscriptions()->notOnGracePeriod()->exists());
+        $this->assertFalse($user->stripeSubscriptions()->ended()->exists());
 
         // Put on grace period.
         $subscription->update(['ends_at' => Carbon::now()->addDay()]);
 
-        $this->assertFalse($user->subscriptions()->incomplete()->exists());
-        $this->assertTrue($user->subscriptions()->active()->exists());
-        $this->assertTrue($user->subscriptions()->onTrial()->exists());
-        $this->assertFalse($user->subscriptions()->notOnTrial()->exists());
-        $this->assertFalse($user->subscriptions()->recurring()->exists());
-        $this->assertTrue($user->subscriptions()->cancelled()->exists());
-        $this->assertFalse($user->subscriptions()->notCancelled()->exists());
-        $this->assertTrue($user->subscriptions()->onGracePeriod()->exists());
-        $this->assertFalse($user->subscriptions()->notOnGracePeriod()->exists());
-        $this->assertFalse($user->subscriptions()->ended()->exists());
+        $this->assertFalse($user->stripeSubscriptions()->incomplete()->exists());
+        $this->assertTrue($user->stripeSubscriptions()->active()->exists());
+        $this->assertTrue($user->stripeSubscriptions()->onTrial()->exists());
+        $this->assertFalse($user->stripeSubscriptions()->notOnTrial()->exists());
+        $this->assertFalse($user->stripeSubscriptions()->recurring()->exists());
+        $this->assertTrue($user->stripeSubscriptions()->cancelled()->exists());
+        $this->assertFalse($user->stripeSubscriptions()->notCancelled()->exists());
+        $this->assertTrue($user->stripeSubscriptions()->onGracePeriod()->exists());
+        $this->assertFalse($user->stripeSubscriptions()->notOnGracePeriod()->exists());
+        $this->assertFalse($user->stripeSubscriptions()->ended()->exists());
 
         // End subscription.
         $subscription->update(['ends_at' => Carbon::now()->subDay()]);
 
-        $this->assertFalse($user->subscriptions()->incomplete()->exists());
-        $this->assertFalse($user->subscriptions()->active()->exists());
-        $this->assertTrue($user->subscriptions()->onTrial()->exists());
-        $this->assertFalse($user->subscriptions()->notOnTrial()->exists());
-        $this->assertFalse($user->subscriptions()->recurring()->exists());
-        $this->assertTrue($user->subscriptions()->cancelled()->exists());
-        $this->assertFalse($user->subscriptions()->notCancelled()->exists());
-        $this->assertFalse($user->subscriptions()->onGracePeriod()->exists());
-        $this->assertTrue($user->subscriptions()->notOnGracePeriod()->exists());
-        $this->assertTrue($user->subscriptions()->ended()->exists());
+        $this->assertFalse($user->stripeSubscriptions()->incomplete()->exists());
+        $this->assertFalse($user->stripeSubscriptions()->active()->exists());
+        $this->assertTrue($user->stripeSubscriptions()->onTrial()->exists());
+        $this->assertFalse($user->stripeSubscriptions()->notOnTrial()->exists());
+        $this->assertFalse($user->stripeSubscriptions()->recurring()->exists());
+        $this->assertTrue($user->stripeSubscriptions()->cancelled()->exists());
+        $this->assertFalse($user->stripeSubscriptions()->notCancelled()->exists());
+        $this->assertFalse($user->stripeSubscriptions()->onGracePeriod()->exists());
+        $this->assertTrue($user->stripeSubscriptions()->notOnGracePeriod()->exists());
+        $this->assertTrue($user->stripeSubscriptions()->ended()->exists());
 
         // Enable past_due as active state.
         $this->assertFalse($subscription->active());
-        $this->assertFalse($user->subscriptions()->active()->exists());
+        $this->assertFalse($user->stripeSubscriptions()->active()->exists());
 
         Cashier::keepPastDueSubscriptionsActive();
 
         $subscription->update(['ends_at' => null, 'stripe_status' => StripeSubscription::STATUS_PAST_DUE]);
 
         $this->assertTrue($subscription->active());
-        $this->assertTrue($user->subscriptions()->active()->exists());
+        $this->assertTrue($user->stripeSubscriptions()->active()->exists());
 
         // Reset deactivate past due state to default to not conflict with other tests.
         Cashier::$deactivatePastDue = true;

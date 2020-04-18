@@ -138,7 +138,7 @@ trait Billable
             return true;
         }
 
-        $subscription = $this->subscription($subscription);
+        $subscription = $this->stripeSubscription($subscription);
 
         if (is_null($plan)) {
             return $subscription && $subscription->onTrial();
@@ -167,7 +167,7 @@ trait Billable
      */
     public function subscribed($subscription = 'default', $plan = null)
     {
-        $subscription = $this->subscription($subscription);
+        $subscription = $this->stripeSubscription($subscription);
 
         if (is_null($subscription)) {
             return false;
@@ -187,7 +187,7 @@ trait Billable
      * @param  string  $subscription
      * @return \Laravel\Cashier\Subscription|null
      */
-    public function subscription($subscription = 'default')
+    public function stripeSubscription($subscription = 'default')
     {
         return $this->subscriptions->sortByDesc(function ($value) {
             return $value->created_at->getTimestamp();
@@ -201,7 +201,7 @@ trait Billable
      *
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
-    public function subscriptions()
+    public function stripeSubscriptions()
     {
         return $this->hasMany(Subscription::class, $this->getForeignKey())->orderBy('created_at', 'desc');
     }
@@ -214,7 +214,7 @@ trait Billable
      */
     public function hasIncompletePayment($subscription = 'default')
     {
-        if ($subscription = $this->subscription($subscription)) {
+        if ($subscription = $this->stripeSubscription($subscription)) {
             return $subscription->hasIncompletePayment();
         }
 
@@ -676,7 +676,7 @@ trait Billable
      */
     public function subscribedToPlan($plans, $subscription = 'default')
     {
-        $subscription = $this->subscription($subscription);
+        $subscription = $this->stripeSubscription($subscription);
 
         if (! $subscription || ! $subscription->valid()) {
             return false;
